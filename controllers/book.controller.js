@@ -1,9 +1,14 @@
 const catchAsync = require("../helpers/catchAsync");
 const GlobalError = require("../helpers/error.handler");
 const postgres = require("../postgres");
-const { redisClient } = require("../redis/redis");
+const { redisClient, retrieveRedisCache } = require("../redis/redis");
 
 exports.addBook = catchAsync(async (req, res, next) => {
+  const cacheKey = "allBooks";
+  const cachedBooks = await retrieveRedisCache(cacheKey);
+
+  const redisCachedData = cachedBooks ? JSON.parse(cachedBooks) : [];
+
   const sqlQuery =
     "INSERT INTO books (title, description, price, userid) VALUES ($1, $2, $3, $4) RETURNING *";
   const values = [
@@ -13,22 +18,30 @@ exports.addBook = catchAsync(async (req, res, next) => {
     req.user.id,
   ];
 
-  postgres.query(sqlQuery, values, (err, book) => {
+  postgres.query(sqlQuery, values, async (err, book) => {
     if (err) return next(new GlobalError(err, 500));
+
+    const updatedRedisCache = [...redisCachedData, book.rows[0]];
+
+    await redisClient.set(
+      cacheKey,
+      JSON.stringify(updatedRedisCache),
+      "EX",
+      10
+    );
+
     res.status(201).json(book.rows[0]);
   });
 });
 
 exports.getAllBooks = catchAsync(async (req, res, next) => {
   const cacheKey = "allBooks";
-  const cachedData = await redisClient.get(cacheKey);
-  const parsedCachedRedisData = JSON.parse(cachedData);
+  const cachedBooks = await retrieveRedisCache(cacheKey);
 
-  if (cachedData) {
+  if (cachedBooks) {
     res.status(200).json({
-      source: "From Redis",
-      results: parsedCachedRedisData.length,
-      books: parsedCachedRedisData,
+      results: cachedBooks.length,
+      books: cachedBooks,
     });
   } else {
     const sqlQuery =
@@ -37,10 +50,11 @@ exports.getAllBooks = catchAsync(async (req, res, next) => {
     postgres.query(sqlQuery, async (err, books) => {
       if (err) return next(new GlobalError(err, 500));
 
+      console.log(books.rows);
+
       await redisClient.set(cacheKey, JSON.stringify(books.rows), "EX", 10);
 
       res.status(200).json({
-        source: "From Postgress",
         results: books.rows.length,
         books: books.rows,
       });
@@ -53,46 +67,52 @@ exports.getUserBooks = catchAsync(async (req, res, next) => {
 
   postgres.query(sqlQuery, [req.user.id], async (err, book) => {
     const cacheKey = `books-user-${book.rows[0].userid}`;
-    const CACHE_EXPIRATION_TIME = 10;
-
-    const cachedData = await redisClient.get(cacheKey);
-    const parsedCachedRedisData = JSON.parse(cachedData);
+    const cachedBooks = await retrieveRedisCache(cacheKey);
 
     if (err) return next(new GlobalError(err, 500));
 
-    if (cachedData) {
-      res.status(200).json({
-        source: "from redis",
-        books: parsedCachedRedisData,
-      });
+    if (cachedBooks) {
+      res.status(200).json(cachedBooks);
     } else {
-      await redisClient.set(
-        cacheKey,
-        JSON.stringify(book.rows),
-        CACHE_EXPIRATION_TIME
-      );
-
+      await redisClient.set(cacheKey, JSON.stringify(book.rows), "EX", 10);
       res.status(200).json(book.rows);
     }
   });
 });
 
 exports.getSingleBook = catchAsync(async (req, res, next) => {
-  const sqlQuery =
-    "SELECT b.*, u.username FROM books b JOIN users u ON b.userid = u.id WHERE b.id = $1";
+  const cacheKey = `book-single-${req.params.bookId}`;
+  const cachedBook = await retrieveRedisCache(cacheKey);
 
-  postgres.query(sqlQuery, [req.params.bookId], (err, book) => {
-    if (err) return next(new GlobalError(err, 500));
-    if (book.rows.length === 0)
-      return res
-        .status(404)
-        .json(`No book with the id of ${req.params.bookId}`);
+  if (cachedBook) {
+    res.status(200).json({
+      books: cachedBook,
+    });
+  } else {
+    const sqlQuery =
+      "SELECT b.*, u.username FROM books b JOIN users u ON b.userid = u.id WHERE b.id = $1";
 
-    res.status(200).json(book.rows[0]);
-  });
+    postgres.query(sqlQuery, [req.params.bookId], async (err, book) => {
+      if (err) return next(new GlobalError(err, 500));
+
+      if (book.rows.length === 0)
+        return res
+          .status(404)
+          .json(`No book with the id of ${req.params.bookId}`);
+
+      await redisClient.set(cacheKey, JSON.stringify(book.rows), "EX", 10);
+
+      res.status(200).json(book.rows[0]);
+    });
+  }
 });
 
 exports.updateBook = catchAsync(async (req, res, next) => {
+  const cacheKey = `book-update-${req.params.bookId}`;
+  const cachedBook = await retrieveRedisCache(cacheKey);
+
+  const redisCachedData = cachedBook ? JSON.parse(cachedBook) : {};
+
   const sqlQuery =
     "UPDATE books SET title = $1, description = $2, price = $3, userid = $4 WHERE id = $5 RETURNING *";
   const values = [
@@ -103,25 +123,59 @@ exports.updateBook = catchAsync(async (req, res, next) => {
     req.params.bookId,
   ];
 
-  postgres.query(sqlQuery, values, (err, book) => {
+  postgres.query(sqlQuery, values, async (err, book) => {
     if (err) return next(new GlobalError(err, 500));
+    const updatedRedisCache = { ...redisCachedData, ...book.rows[0] };
+
     if (book.rows.length === 0)
       return res
         .status(404)
         .json(`No book with the id of ${req.params.bookId}`);
-    res.status(200).json(book.rows[0]);
+
+    await redisClient.set(
+      `book-single-${req.params.bookId}`,
+      JSON.stringify(updatedRedisCache),
+      "EX",
+      10
+    );
+
+    res.status(200).json({
+      message: "Book updated",
+      updatedBook: book.rows[0],
+    });
   });
 });
 
 exports.deleteBook = catchAsync(async (req, res, next) => {
-  const sqlQuery = "DELETE FROM books WHERE id = $1";
+  const userBookCacheKey = `book-user-${req.params.bookId}`;
+  const singleBookCacheKey = `book-single-${req.params.bookId}`;
+  const allBooksCacheKey = "allBooks";
 
-  postgres.query(sqlQuery, [req.params.bookId], (err, book) => {
+  const cachedBooks = await retrieveRedisCache(allBooksCacheKey);
+  const updatedCachedBooks = cachedBooks.filter(
+    (book) => book.id !== parseInt(req.params.bookId)
+  );
+
+  const sqlQuery = "DELETE FROM books WHERE id = $1 RETURNING *";
+
+  postgres.query(sqlQuery, [req.params.bookId], async (err, book) => {
+    console.log(book);
     if (err) return next(new GlobalError(err, 500));
     if (book.rows.length === 0)
       return res
         .status(404)
         .json(`No book with the id of ${req.params.bookId}`);
+
+    await redisClient.del(allBooksCacheKey);
+    await redisClient.set(
+      allBooksCacheKey,
+      JSON.stringify(updatedCachedBooks),
+      "EX",
+      10
+    );
+
+    await redisClient.del(userBookCacheKey);
+    await redisClient.del(singleBookCacheKey);
 
     res.status(200).json(`Book has been deleted`);
   });

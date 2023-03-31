@@ -9,4 +9,15 @@ const connectToRedis = () => {
   redisClient.on("connect", () => console.log("Connected to Redis Server"));
 };
 
-module.exports = { redisClient, connectToRedis };
+const retrieveRedisCache = async (cacheKey) => {
+  const cachedData = await redisClient.get(cacheKey);
+  const parsedCachedRedisData = JSON.parse(cachedData);
+
+  return parsedCachedRedisData;
+};
+
+module.exports = {
+  redisClient,
+  connectToRedis,
+  retrieveRedisCache,
+};
