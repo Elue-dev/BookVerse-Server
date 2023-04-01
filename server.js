@@ -15,7 +15,18 @@ connectToRedis();
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", true);
+  next();
+});
+
+app.use(
+  cors({
+    origin: "http://127.0.0.1:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 const PORT = process.env.PORT || 5000;

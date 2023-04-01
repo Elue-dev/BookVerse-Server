@@ -2,6 +2,7 @@ const { default: slugify } = require("slugify");
 const catchAsync = require("../helpers/catchAsync");
 const GlobalError = require("../helpers/error.handler");
 const postgres = require("../postgres");
+const moment = require("moment");
 const { redisClient, retrieveRedisCache } = require("../redis/redis");
 
 exports.addBook = catchAsync(async (req, res, next) => {
@@ -15,12 +16,13 @@ exports.addBook = catchAsync(async (req, res, next) => {
   });
 
   const sqlQuery =
-    "INSERT INTO books (title, description, price, bookimg, userid, slug, userimg) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *";
+    "INSERT INTO books (title, description, price, bookimg, date, userid, slug, userimg) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *";
   const values = [
     req.body.title,
     req.body.description,
     req.body.price,
     req.body.bookImg,
+    moment(Date.now()).format("YYYY-MM-DD HH:mm:ss"),
     req.user.id,
     slugifiedText,
     req.user.img,
