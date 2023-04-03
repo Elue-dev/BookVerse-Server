@@ -12,7 +12,7 @@ const { requireAuth } = require("../middlewares/requireAuth");
 const router = express.Router();
 
 router.route("/").get(getAllBooks).post(requireAuth, addBook);
-router.get("/my-books", requireAuth, getUserBooks);
+router.get("/user-books", requireAuth, getUserBooks);
 router.get("/:slug", getSingleBook);
 
 router

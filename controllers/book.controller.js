@@ -120,12 +120,16 @@ exports.updateBook = catchAsync(async (req, res, next) => {
 
   postgres.query(sqlQuery, values, async (err, book) => {
     if (err) return next(new GlobalError(err, 500));
-    const updatedRedisCache = { ...redisCachedData, ...book.rows[0] };
+
+    if (req.user.id !== book.userid)
+      return next(new GlobalError("You can only update books you added", 403));
 
     if (book.rows.length === 0)
       return res
         .status(404)
         .json(`No book with the id of ${req.params.bookId}`);
+
+    const updatedRedisCache = { ...redisCachedData, ...book.rows[0] };
 
     await redisClient.set(
       `book-single-${req.params.bookId}`,
@@ -157,6 +161,10 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
   postgres.query(sqlQuery, [req.params.bookId], async (err, book) => {
     console.log({ error: err });
     if (err) return next(new GlobalError(err, 500));
+
+    if (req.user.id !== book.userid)
+      return next(new GlobalError("You can only delete books you added", 403));
+
     if (book.rows.length === 0)
       return res
         .status(404)
