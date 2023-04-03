@@ -26,10 +26,8 @@ exports.getSingleUser = catchAsync(async (req, res, next) => {
 
 exports.updateUser = catchAsync(async (req, res, next) => {
   let hashedPassword;
-  let oldPassword;
   let sqlQuery;
   let values;
-  let matchPassword;
 
   if (Number(req.params.userId) !== req.user.id)
     return next(new GlobalError("You can only update your account", 500));
@@ -44,7 +42,17 @@ exports.updateUser = catchAsync(async (req, res, next) => {
     const salt = bcrypt.genSaltSync(10);
     hashedPassword = bcrypt.hashSync(req.body.password, salt);
 
-    matchPassword = bcrypt.compareSync(req.body.oldPassword, req.user.password);
+    if (req.body.password === req.body.oldPassword)
+      return next(
+        new GlobalError(
+          "Please choose a different password from your old password"
+        )
+      );
+
+    const matchPassword = bcrypt.compareSync(
+      req.body.oldPassword,
+      req.user.password
+    );
 
     if (!matchPassword)
       return next(new GlobalError("Old password is incorrect", 500));

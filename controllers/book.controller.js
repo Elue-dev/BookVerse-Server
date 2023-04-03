@@ -7,7 +7,9 @@ const { redisClient, retrieveRedisCache } = require("../redis/redis");
 
 exports.addBook = catchAsync(async (req, res, next) => {
   const cacheKey = "allBooks";
+  const userBooksCacheKey = `books-user-${req.user.id}`;
   const cachedBooks = await retrieveRedisCache(cacheKey);
+  const userCachedBooks = await retrieveRedisCache(userBooksCacheKey);
 
   const slugifiedText = slugify(req.body.title, {
     lower: true,
@@ -30,10 +32,18 @@ exports.addBook = catchAsync(async (req, res, next) => {
     if (err) return next(new GlobalError(err, 500));
 
     const updatedRedisCache = [...cachedBooks, book.rows[0]];
+    const updateUserBooksCache = [...userCachedBooks, book.rows[0]];
 
     await redisClient.set(
       cacheKey,
       JSON.stringify(updatedRedisCache),
+      "EX",
+      10
+    );
+
+    await redisClient.set(
+      userBooksCacheKey,
+      JSON.stringify(updateUserBooksCache),
       "EX",
       10
     );
@@ -74,10 +84,12 @@ exports.getUserBooks = catchAsync(async (req, res, next) => {
     const cacheKey = `books-user-${book.rows[0].userid}`;
     const cachedBooks = await retrieveRedisCache(cacheKey);
 
+    // await redisClient.del(cacheKey);
+
     if (err) return next(new GlobalError(err, 500));
 
     if (cachedBooks) {
-      res.status(200).json(cachedBooks);
+      res.status(200).json({ msg: "redis", cachedBooks });
     } else {
       await redisClient.set(cacheKey, JSON.stringify(book.rows), "EX", 10);
       res.status(200).json(book.rows);
@@ -121,7 +133,7 @@ exports.updateBook = catchAsync(async (req, res, next) => {
   postgres.query(sqlQuery, values, async (err, book) => {
     if (err) return next(new GlobalError(err, 500));
 
-    if (req.user.id !== book.userid)
+    if (req.user.id !== book.rows[0].userid)
       return next(new GlobalError("You can only update books you added", 403));
 
     if (book.rows.length === 0)
@@ -145,12 +157,17 @@ exports.updateBook = catchAsync(async (req, res, next) => {
 });
 
 exports.deleteBook = catchAsync(async (req, res, next) => {
-  const userBookCacheKey = `book-user-${req.params.bookId}`;
-  const singleBookCacheKey = `book-single-${req.params.bookId}`;
+  const userBookCacheKey = `books-user-${req.user.id}`;
   const allBooksCacheKey = "allBooks";
 
   const cachedBooks = await retrieveRedisCache(allBooksCacheKey);
+  const userCachedBooks = await retrieveRedisCache(userBookCacheKey);
+
   const updatedCachedBooks = cachedBooks?.filter(
+    (book) => book.id !== parseInt(req.params.bookId)
+  );
+
+  const updatedUserCachedBooks = userCachedBooks?.filter(
     (book) => book.id !== parseInt(req.params.bookId)
   );
 
@@ -159,10 +176,9 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
   const sqlQuery = "DELETE FROM books WHERE id = $1 RETURNING *";
 
   postgres.query(sqlQuery, [req.params.bookId], async (err, book) => {
-    console.log({ error: err });
     if (err) return next(new GlobalError(err, 500));
 
-    if (req.user.id !== book.userid)
+    if (req.user.id !== book.rows[0].userid)
       return next(new GlobalError("You can only delete books you added", 403));
 
     if (book.rows.length === 0)
@@ -171,17 +187,21 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
         .json(`No book with the id of ${req.params.bookId}`);
 
     await redisClient.del(allBooksCacheKey);
+    await redisClient.del(userBookCacheKey);
+
     await redisClient.set(
       allBooksCacheKey,
       JSON.stringify(updatedCachedBooks),
       "EX",
       10
     );
-
+    await redisClient.set(
+      allBooksCacheKey,
+      JSON.stringify(updatedUserCachedBooks),
+      "EX",
+      10
+    );
     await postgres.query("ALTER TABLE books ENABLE TRIGGER ALL");
-
-    await redisClient.del(userBookCacheKey);
-    await redisClient.del(singleBookCacheKey);
 
     res.status(200).json(`Book deleted`);
   });
