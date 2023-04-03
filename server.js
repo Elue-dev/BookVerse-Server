@@ -3,6 +3,7 @@ const postgres = require("./postgres");
 const bookRoutes = require("./routes/book.routes");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
+const commentRoutes = require("./routes/comment.routes");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -23,7 +24,7 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: "http://127.0.0.1:5173",
+    origin: ["http://127.0.0.1:5173", "http://127.0.0.1:5174"],
     credentials: true,
   })
 );
@@ -34,6 +35,7 @@ const PORT = process.env.PORT || 5000;
 app.use("/api/books", bookRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/comments", commentRoutes);
 
 app.use((req, res, next) => {
   next();

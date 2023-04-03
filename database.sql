@@ -13,3 +13,13 @@ CREATE TABLE books (
   userid INT NOT NULL,
   FOREIGN KEY (userid) REFERENCES users(id)
 );
+
+CREATE TABLE comments (
+  id SERIAL PRIMARY KEY,
+  comment TEXT,
+  userid INT NOT NULL,
+  bookid INT NOT NULL,
+  date DATE DEFAULT now(),
+  FOREIGN KEY (userid) REFERENCES users(id),
+  FOREIGN KEY (bookid) REFERENCES books(id)
+);

@@ -11,15 +11,13 @@ const { requireAuth } = require("../middlewares/requireAuth");
 
 const router = express.Router();
 
-router.use(requireAuth);
-
-router.route("/").get(getAllBooks).post(addBook);
-router.get("/my-books", getUserBooks);
+router.route("/").get(getAllBooks).post(requireAuth, addBook);
+router.get("/my-books", requireAuth, getUserBooks);
+router.get("/:slug", getSingleBook);
 
 router
   .route("/:bookId")
-  .get(getSingleBook)
-  .patch(updateBook)
-  .delete(deleteBook);
+  .patch(requireAuth, updateBook)
+  .delete(requireAuth, deleteBook);
 
 module.exports = router;
