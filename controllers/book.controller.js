@@ -2,7 +2,6 @@ const { default: slugify } = require("slugify");
 const catchAsync = require("../helpers/catchAsync");
 const GlobalError = require("../helpers/error.handler");
 const postgres = require("../postgres");
-const moment = require("moment");
 const { redisClient, retrieveRedisCache } = require("../redis/redis");
 
 exports.addBook = catchAsync(async (req, res, next) => {
@@ -10,6 +9,8 @@ exports.addBook = catchAsync(async (req, res, next) => {
   const userBooksCacheKey = `books-user-${req.user.id}`;
   const cachedBooks = await retrieveRedisCache(cacheKey);
   const userCachedBooks = await retrieveRedisCache(userBooksCacheKey);
+
+  console.log({ userCachedBooks });
 
   const slugifiedText = slugify(req.body.title, {
     lower: true,
@@ -31,19 +32,11 @@ exports.addBook = catchAsync(async (req, res, next) => {
   postgres.query(sqlQuery, values, async (err, book) => {
     if (err) return next(new GlobalError(err, 500));
 
-    const updatedRedisCache = [...cachedBooks, book.rows[0]];
-    const updateUserBooksCache = [...userCachedBooks, book.rows[0]];
+    const updatedRedisCache = [book.rows[0], ...cachedBooks];
 
     await redisClient.set(
       cacheKey,
       JSON.stringify(updatedRedisCache),
-      "EX",
-      10
-    );
-
-    await redisClient.set(
-      userBooksCacheKey,
-      JSON.stringify(updateUserBooksCache),
       "EX",
       10
     );
@@ -81,19 +74,9 @@ exports.getUserBooks = catchAsync(async (req, res, next) => {
   const sqlQuery = "SELECT * FROM books WHERE userid = $1 ORDER BY id DESC ";
 
   postgres.query(sqlQuery, [req.user.id], async (err, book) => {
-    const cacheKey = `books-user-${book.rows[0].userid}`;
-    const cachedBooks = await retrieveRedisCache(cacheKey);
-
-    // await redisClient.del(cacheKey);
-
     if (err) return next(new GlobalError(err, 500));
 
-    if (cachedBooks) {
-      res.status(200).json({ msg: "redis", cachedBooks });
-    } else {
-      await redisClient.set(cacheKey, JSON.stringify(book.rows), "EX", 10);
-      res.status(200).json(book.rows);
-    }
+    res.status(200).json(book.rows);
   });
 });
 
@@ -114,8 +97,11 @@ exports.getSingleBook = catchAsync(async (req, res, next) => {
 });
 
 exports.updateBook = catchAsync(async (req, res, next) => {
-  const cacheKey = `book-update-${req.params.bookId}`;
-  const cachedBook = await retrieveRedisCache(cacheKey);
+  const cacheKey = `allBooks`;
+  const cachedBook = await redisClient.get(cacheKey);
+  // const cachedBook = await retrieveRedisCache(cacheKey);
+
+  // console.log({ cachedBook });
 
   const redisCachedData = cachedBook ? JSON.parse(cachedBook) : {};
 
@@ -141,10 +127,14 @@ exports.updateBook = catchAsync(async (req, res, next) => {
         .status(404)
         .json(`No book with the id of ${req.params.bookId}`);
 
-    const updatedRedisCache = { ...redisCachedData, ...book.rows[0] };
+    const filteredCache = redisCachedData.filter(
+      (b) => b.id !== book.rows[0].id
+    );
+
+    const updatedRedisCache = [book.rows[0], ...filteredCache];
 
     await redisClient.set(
-      `book-single-${req.params.bookId}`,
+      cacheKey,
       JSON.stringify(updatedRedisCache),
       "EX",
       10
@@ -157,17 +147,11 @@ exports.updateBook = catchAsync(async (req, res, next) => {
 });
 
 exports.deleteBook = catchAsync(async (req, res, next) => {
-  const userBookCacheKey = `books-user-${req.user.id}`;
   const allBooksCacheKey = "allBooks";
 
   const cachedBooks = await retrieveRedisCache(allBooksCacheKey);
-  const userCachedBooks = await retrieveRedisCache(userBookCacheKey);
 
   const updatedCachedBooks = cachedBooks?.filter(
-    (book) => book.id !== parseInt(req.params.bookId)
-  );
-
-  const updatedUserCachedBooks = userCachedBooks?.filter(
     (book) => book.id !== parseInt(req.params.bookId)
   );
 
@@ -187,7 +171,6 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
         .json(`No book with the id of ${req.params.bookId}`);
 
     await redisClient.del(allBooksCacheKey);
-    await redisClient.del(userBookCacheKey);
 
     await redisClient.set(
       allBooksCacheKey,
@@ -195,12 +178,7 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
       "EX",
       10
     );
-    await redisClient.set(
-      allBooksCacheKey,
-      JSON.stringify(updatedUserCachedBooks),
-      "EX",
-      10
-    );
+
     await postgres.query("ALTER TABLE books ENABLE TRIGGER ALL");
 
     res.status(200).json(`Book deleted`);

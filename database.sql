@@ -19,7 +19,7 @@ CREATE TABLE comments (
   comment TEXT,
   userid INT NOT NULL,
   bookid INT NOT NULL,
-  date DATE DEFAULT now(),
+  date DATETIME DEFAULT now(),
   FOREIGN KEY (userid) REFERENCES users(id),
   FOREIGN KEY (bookid) REFERENCES books(id)
 );
