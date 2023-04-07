@@ -9,7 +9,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const errorHandler = require("./controllers/error.controller");
 const GlobalError = require("./helpers/error.handler");
-const { connectToRedis, redisClient } = require("./redis/redis");
+const { connectToRedis } = require("./redis/redis");
 
 connectToRedis();
 
@@ -28,6 +28,7 @@ app.use(
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(cookieParser());
 const PORT = process.env.PORT || 5000;
