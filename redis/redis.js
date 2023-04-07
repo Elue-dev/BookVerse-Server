@@ -1,6 +1,13 @@
 const { createClient } = require("redis");
+const url = require("url");
 
-const redisClient = createClient(process.env.REDIS_URL);
+const redisUrl = url.parse(process.env.REDIS_URL);
+
+const redisClient = createClient({
+  host: redisUrl.hostname,
+  port: redisUrl.port,
+  password: redisUrl.auth.split(":")[1],
+});
 
 const connectToRedis = () => {
   redisClient.connect();
