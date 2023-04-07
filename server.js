@@ -24,7 +24,11 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: ["http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    origin: [
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5174",
+      "https://bookverseapp.netlify.app",
+    ],
     credentials: true,
   })
 );
@@ -52,9 +56,11 @@ app.use(errorHandler);
 
 postgres.connect((err) => {
   if (err) {
-    console.error("Connection error", err.stack);
+    console.error("Postgres connection error", err.stack);
   } else {
-    app.listen(PORT, () => console.log(`Server listening at port ${PORT}`));
+    app.listen(PORT, () =>
+      console.log(`Backend Server listening at port ${PORT}`)
+    );
     console.log("Connected to Postgres Database");
   }
 });

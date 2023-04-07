@@ -4,7 +4,8 @@
   "description": "Books app with PostgreSQL",
   "main": "server.js",
   "scripts": {
-    "server": "nodemon server.js"
+    "server": "nodemon server.js",
+    "build": "npm run build"
   },
   "author": "Wisdom Elue",
   "license": "ISC",
