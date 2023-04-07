@@ -1,7 +1,4 @@
 const { createClient } = require("redis");
-const url = require("url");
-
-const redisUrl = url.parse(process.env.REDIS_URL);
 
 let redisClient;
 
@@ -9,9 +6,7 @@ if (process.env.NODE_ENV === "development") {
   redisClient = createClient();
 } else {
   redisClient = createClient({
-    host: redisUrl.hostname,
-    port: redisUrl.port,
-    password: redisUrl.auth.split(":")[1],
+    url: process.env.REDIS_URL,
   });
 }
 
