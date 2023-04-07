@@ -10,18 +10,17 @@ exports.addBook = catchAsync(async (req, res, next) => {
   const cachedBooks = await retrieveRedisCache(cacheKey);
   const userCachedBooks = await retrieveRedisCache(userBooksCacheKey);
 
-  console.log({ userCachedBooks });
-
   const slugifiedText = slugify(req.body.title, {
     lower: true,
   });
 
   const sqlQuery =
-    "INSERT INTO books (title, description, price, bookimg, userid, slug, userimg, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *";
+    "INSERT INTO books (title, description, price, date, bookimg, userid, slug, userimg, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
   const values = [
     req.body.title,
     req.body.description,
     req.body.price,
+    req.body.date,
     req.body.image,
     req.user.id,
     slugifiedText,

@@ -42,13 +42,6 @@ exports.updateUser = catchAsync(async (req, res, next) => {
     const salt = bcrypt.genSaltSync(10);
     hashedPassword = bcrypt.hashSync(req.body.password, salt);
 
-    if (req.body.password === req.body.oldPassword)
-      return next(
-        new GlobalError(
-          "Please choose a different password from your old password"
-        )
-      );
-
     const matchPassword = bcrypt.compareSync(
       req.body.oldPassword,
       req.user.password
@@ -56,6 +49,13 @@ exports.updateUser = catchAsync(async (req, res, next) => {
 
     if (!matchPassword)
       return next(new GlobalError("Old password is incorrect", 500));
+
+    if (req.body.password === req.body.oldPassword)
+      return next(
+        new GlobalError(
+          "Please choose a different password from your old password"
+        )
+      );
 
     sqlQuery =
       "UPDATE users SET username = $1, email = $2, password = $3, img = $4 WHERE id = $5 RETURNING * ";
