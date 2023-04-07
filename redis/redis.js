@@ -3,13 +3,17 @@ const url = require("url");
 
 const redisUrl = url.parse(process.env.REDIS_URL);
 
-const redisClientProd = createClient({
-  host: redisUrl.hostname,
-  port: redisUrl.port,
-  password: redisUrl.auth.split(":")[1],
-});
+let redisClient;
 
-const redisClient = createClient();
+if (process.env.NODE_ENV === "development") {
+  redisClient = createClient();
+} else {
+  redisClient = createClient({
+    host: redisUrl.hostname,
+    port: redisUrl.port,
+    password: redisUrl.auth.split(":")[1],
+  });
+}
 
 const connectToRedis = () => {
   redisClient.connect();
@@ -25,20 +29,8 @@ const retrieveRedisCache = async (cacheKey) => {
   return parsedCachedRedisData;
 };
 
-let exportObj;
-
-if (process.env.NODE_ENV === "development") {
-  exportObj = {
-    redisClient,
-    connectToRedis,
-    retrieveRedisCache,
-  };
-} else {
-  exportObj = {
-    redisClientProd,
-    connectToRedis,
-    retrieveRedisCache,
-  };
-}
-
-module.exports = exportObj;
+module.exports = {
+  redisClient,
+  connectToRedis,
+  retrieveRedisCache,
+};
