@@ -70,13 +70,25 @@ exports.login = async (req, res, next) => {
 
       const { password, ...otherInfo } = user.rows[0];
 
-      res
-        .cookie("accessToken", accessToken, {
-          httpOnly: true,
-          maxAge: 24 * 60 * 60 * 1000,
-        })
-        .status(200)
-        .json(otherInfo);
+      if ((process.env.NODE_ENV = "development")) {
+        res
+          .cookie("accessToken", accessToken, {
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000,
+          })
+          .status(200)
+          .json(otherInfo);
+      } else {
+        res
+          .cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: true,
+            domain: "https://bookverseapp.netlify.app",
+            maxAge: 24 * 60 * 60 * 1000,
+          })
+          .status(200)
+          .json(otherInfo);
+      }
     }
   );
 };
