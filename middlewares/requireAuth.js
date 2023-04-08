@@ -25,7 +25,7 @@ exports.requireAuth = catchAsync(async (req, res, next) => {
     );
     req.user = getUserFromDB.rows[0];
   } catch (error) {
-    return next(new GlobalError("Session expired. Please log in again", 401));
+    return next(new GlobalError("Session expired. Please log in again.", 401));
   }
 
   next();
