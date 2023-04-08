@@ -77,20 +77,20 @@ exports.login = async (req, res, next) => {
             maxAge: 24 * 60 * 60 * 1000,
           })
           .status(200)
-          .json(otherInfo);
+          .json({ user: otherInfo, accessToken });
       } else {
         res
           .cookie("accessToken", accessToken, {
             httpOnly: true,
             secure: true,
-            sameSite: "none",
+            sameSite: "lax",
             expires: new Date(
               Date.now() +
                 Number(process.env.COOKIE_EXPIRES) * 24 * 60 * 60 * 1000
             ),
           })
           .status(200)
-          .json(otherInfo);
+          .json({ user: otherInfo, accessToken });
       }
     }
   );
