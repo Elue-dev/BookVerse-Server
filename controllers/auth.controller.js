@@ -83,8 +83,10 @@ exports.login = async (req, res, next) => {
           .cookie("accessToken", accessToken, {
             httpOnly: true,
             secure: true,
-            domain: "https://bookverseapp.netlify.app",
-            maxAge: 24 * 60 * 60 * 1000,
+            expires: new Date(
+              Date.now() +
+                Number(process.env.COOKIE_EXPIRES) * 24 * 60 * 60 * 1000
+            ),
           })
           .status(200)
           .json(otherInfo);
