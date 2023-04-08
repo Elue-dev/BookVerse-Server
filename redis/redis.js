@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === "development") {
 const connectToRedis = () => {
   redisClient.connect();
 
-  redisClient.on("error", (err) => console.log("Redis Client Error", err));
+  redisClient.on("error", (error) => console.log("Redis Client Error", error));
   redisClient.on("connect", () => console.log("Connected to Redis Server"));
 };
 
