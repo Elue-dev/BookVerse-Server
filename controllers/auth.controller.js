@@ -83,6 +83,7 @@ exports.login = async (req, res, next) => {
           .cookie("accessToken", accessToken, {
             httpOnly: true,
             secure: true,
+            sameSite: "none",
             expires: new Date(
               Date.now() +
                 Number(process.env.COOKIE_EXPIRES) * 24 * 60 * 60 * 1000
