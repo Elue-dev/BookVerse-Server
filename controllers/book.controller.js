@@ -46,7 +46,7 @@ exports.getAllBooks = catchAsync(async (req, res, next) => {
   const cacheKey = "allBooks";
   const cachedBooks = await retrieveRedisCache(cacheKey);
 
-  await redisClient.del(cacheKey);
+  // await redisClient.del(cacheKey);
 
   if (cachedBooks) {
     res.status(200).json({
