@@ -8,14 +8,13 @@ exports.addBook = catchAsync(async (req, res, next) => {
   const cacheKey = "allBooks";
   const userBooksCacheKey = `books-user-${req.user.id}`;
   const cachedBooks = await retrieveRedisCache(cacheKey);
-  const userCachedBooks = await retrieveRedisCache(userBooksCacheKey);
 
   const slugifiedText = slugify(req.body.title, {
     lower: true,
   });
 
   const sqlQuery =
-    "INSERT INTO books (title, description, price, date, bookimg, userid, slug, userimg, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
+    "INSERT INTO books (title, description, price, date, bookimg, userid, slug, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *";
   const values = [
     req.body.title,
     req.body.description,
@@ -24,7 +23,6 @@ exports.addBook = catchAsync(async (req, res, next) => {
     req.body.image,
     req.user.id,
     slugifiedText,
-    req.user.img,
     req.body.category,
   ];
 
@@ -81,7 +79,7 @@ exports.getUserBooks = catchAsync(async (req, res, next) => {
 
 exports.getSingleBook = catchAsync(async (req, res, next) => {
   const sqlQuery =
-    "SELECT b.*, u.username FROM books b JOIN users u ON b.userid = u.id WHERE b.slug = $1";
+    "SELECT b.*, u.username, u.img AS user_img FROM books b JOIN users u ON b.userid = u.id WHERE b.slug = $1";
 
   postgres.query(sqlQuery, [req.params.slug], async (err, book) => {
     if (err) return next(new GlobalError(err, 500));
