@@ -6,7 +6,6 @@ const { redisClient, retrieveRedisCache } = require("../redis/redis");
 
 exports.addBook = catchAsync(async (req, res, next) => {
   const cacheKey = "allBooks";
-  const userBooksCacheKey = `books-user-${req.user.id}`;
   const cachedBooks = await retrieveRedisCache(cacheKey);
 
   const slugifiedText = slugify(req.body.title, {
@@ -31,12 +30,8 @@ exports.addBook = catchAsync(async (req, res, next) => {
 
     const updatedRedisCache = [book.rows[0], ...cachedBooks];
 
-    await redisClient.set(
-      cacheKey,
-      JSON.stringify(updatedRedisCache),
-      "EX",
-      10
-    );
+    await redisClient.set(cacheKey, JSON.stringify(updatedRedisCache));
+    await redisClient.expire(cacheKey, 180);
 
     res.status(201).json({ message: "Book added", book: book.rows[0] });
   });
@@ -60,9 +55,13 @@ exports.getAllBooks = catchAsync(async (req, res, next) => {
     postgres.query(sqlQuery, async (err, books) => {
       if (err) return next(new GlobalError(err, 500));
 
-      await redisClient.set(cacheKey, JSON.stringify(books.rows), "EX", 10);
+      await redisClient.set(cacheKey, JSON.stringify(books.rows));
+      await redisClient.expire(cacheKey, 180);
 
-      res.status(200).json({ results: books.rows.length, books: books.rows });
+      res.status(200).json({
+        results: books.rows.length,
+        books: books.rows,
+      });
     });
   }
 });
@@ -126,18 +125,14 @@ exports.updateBook = catchAsync(async (req, res, next) => {
         .status(404)
         .json(`No book with the id of ${req.params.bookId}`);
 
-    const filteredCache = redisCachedData.filter(
+    const filteredCache = redisCachedData?.filter(
       (b) => b.id !== book.rows[0].id
     );
 
     const updatedRedisCache = [book.rows[0], ...filteredCache];
 
-    await redisClient.set(
-      cacheKey,
-      JSON.stringify(updatedRedisCache),
-      "EX",
-      10
-    );
+    await redisClient.set(cacheKey, JSON.stringify(updatedRedisCache));
+    await redisClient.expire(cacheKey, 180);
 
     res
       .status(200)
@@ -171,12 +166,8 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
 
     await redisClient.del(allBooksCacheKey);
 
-    await redisClient.set(
-      allBooksCacheKey,
-      JSON.stringify(updatedCachedBooks),
-      "EX",
-      10
-    );
+    await redisClient.set(allBooksCacheKey, JSON.stringify(updatedCachedBooks));
+    await redisClient.expire(cacheKey, 180);
 
     await postgres.query("ALTER TABLE books ENABLE TRIGGER ALL");
 
