@@ -4,37 +4,6 @@ const GlobalError = require("../helpers/error.handler");
 const postgres = require("../postgres");
 const { redisClient, retrieveRedisCache } = require("../redis/redis");
 
-// const sqlQueryy =
-// "INSERT INTO books (title, description, price, bookimg, userid, slug, userimg, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *";
-
-// const valuess = [
-// "A Tale Of Two Cities",
-// "A Tale of Two Cities is a historical novel published in 1859 by Charles Dickens, set in London and Paris before and during the French Revolution. The novel tells the story of the French Doctor Manette, his 18-year-long imprisonment in the Bastille in Paris, and his release to live in London with his daughter Lucie whom he had never met. The story is set against the conditions that led up to the French Revolution and the Reign of Terror. In the Introduction to the Encyclopedia of Adventure Fiction, critic Don D'Ammassa argues that it is an adventure novel because the protagonists are in constant danger of being imprisoned or killed.As Dickens best-known work of historical fiction, A Tale of Two Cities is said to be one of the best-selling novels of all time. In 2003, the novel was ranked 63rd on the BBC's The Big Read poll. The novel has been adapted for film, television, radio, and the stage, and has continued to influence popular culture.",
-// "4500",
-// "https://images.pexels.com/photos/3992656/pexels-photo-3992656.png?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-// 2,
-// "a-tale-of-two-cities",
-// "https://images.pexels.com/photos/3992656/pexels-photo-3992656.png?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-// "Fiction",
-// ];
-
-// postgres.query(sqlQueryy, valuess, async (err, ress) => {
-// if (err) return next(new GlobalError(err, 500));
-
-// // const updatedRedisCache = [book.rows[0], ...cachedBooks];
-
-// // await redisClient.set(
-// //   cacheKey,
-// //   JSON.stringify(updatedRedisCache),
-// //   "EX",
-// //   10
-// // );
-
-// res.status(201).json({ message: "BOOK ADDED" });
-// });
-
-// return;
-
 exports.addBook = catchAsync(async (req, res, next) => {
   const cacheKey = "allBooks";
   const userBooksCacheKey = `books-user-${req.user.id}`;

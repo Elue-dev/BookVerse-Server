@@ -4,6 +4,7 @@ const bookRoutes = require("./routes/book.routes");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const commentRoutes = require("./routes/comment.routes");
+const transactionRoutes = require("./routes/transaction.routes");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -42,6 +43,7 @@ app.use("/api/books", bookRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 app.use((req, res, next) => {
   next();

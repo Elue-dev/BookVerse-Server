@@ -23,3 +23,13 @@ CREATE TABLE comments (
   FOREIGN KEY (userid) REFERENCES users(id),
   FOREIGN KEY (bookid) REFERENCES books(id)
 );
+
+CREATE TABLE transactions (
+   id SERIAL PRIMARY KEY,
+   userId INT NOT NULL,
+   bookId INT NOT NULL,
+  transactionId INT NOT NULL,
+   date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+   FOREIGN KEY (userId) REFERENCES users(id),
+   FOREIGN KEY (bookId) REFERENCES books(id)
+)
