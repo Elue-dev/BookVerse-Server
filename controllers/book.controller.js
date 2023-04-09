@@ -96,20 +96,22 @@ exports.getSingleBook = catchAsync(async (req, res, next) => {
 exports.updateBook = catchAsync(async (req, res, next) => {
   const cacheKey = `allBooks`;
   const cachedBook = await redisClient.get(cacheKey);
-  // const cachedBook = await retrieveRedisCache(cacheKey);
-
-  // console.log({ cachedBook });
 
   const redisCachedData = cachedBook ? JSON.parse(cachedBook) : {};
 
+  const slugifiedText = slugify(req.body.title, {
+    lower: true,
+  });
+
   const sqlQuery =
-    "UPDATE books SET title = $1, description = $2, price = $3, bookimg = $4, userid = $5 WHERE id = $6 RETURNING *";
+    "UPDATE books SET title = $1, description = $2, price = $3, bookimg = $4, userid = $5, slug = $6 WHERE id = $7 RETURNING *";
   const values = [
     req.body.title,
     req.body.description,
     req.body.price,
     req.body.image,
     req.user.id,
+    slugifiedText,
     req.params.bookId,
   ];
 
