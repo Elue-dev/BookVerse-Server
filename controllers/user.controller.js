@@ -2,19 +2,6 @@ const catchAsync = require("../helpers/catchAsync");
 const GlobalError = require("../helpers/error.handler");
 const postgres = require("../postgres");
 const bcrypt = require("bcryptjs");
-const {
-  createTransaction,
-  verifyTransaction,
-} = require("../services/paystack");
-// const paystack = require("paystack")(
-//   "sk_test_bd74ab22c4a08442cf81f08ca4f89bf147cef74d"
-// );
-const Flutterwave = require("flutterwave-node");
-
-const PUBLIC_KEY = "FLWPUBK_TEST-d2fed517c8f5ab296b9fa79a5524a45f-X";
-const SECRET_KEY = "FLWSECK_TEST-9b5e128f2f2a4a4e7bc78e2391afa090-X";
-
-const flutterwave = new Flutterwave(PUBLIC_KEY, SECRET_KEY);
 
 exports.getAllUsers = catchAsync(async (req, res, next) => {
   const sqlQuery = "SELECT id, username, email FROM users";
@@ -113,49 +100,4 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
     if (err) return next(new GlobalError(err, 500));
     return res.status(200).json("User has been deleted");
   });
-});
-
-exports.pay = catchAsync(async (req, res) => {
-  // let referenceNo;
-  // createTransaction(1000, "test@gmail.com")
-  //   .then((reference) => {
-  //     referenceNo = reference;
-  //   })
-  //   .then(() => {
-  //     verifyTransaction(referenceNo)
-  //       .then((transaction) => {
-  //         res.status(201).json(transaction);
-  //         // Update the user's account with the transaction details
-  //       })
-  //       .catch((error) => {
-  //         console.error("Error verifying transaction:", error);
-  //       });
-  //   })
-  //   .catch((error) => {
-  //     console.error("Error creating transaction:", error);
-  //     res.status(500).send("Error creating transaction");
-  //   });
-
-  // Verify a transaction
-  // verifyTransaction(reference)
-  //   .then((transaction) => {
-  //     console.log("Transaction details:", transaction);
-  //     // Update the user's account with the transaction details
-  //   })
-  //   .catch((error) => {
-  //     console.error("Error verifying transaction:", error);
-  //   });
-
-  const transaction = await flutterwave.Transfer.initiate({
-    account_bank: "044",
-    account_number: "0690000040",
-    amount: 5500,
-    narration: "Akhlm Pstmn Trnsfr xx007",
-    currency: "NGN",
-    reference: "akhlm-pstmnpyt-rfxx007_PMCKDU_1",
-    callback_url: "https://www.flutterwave.com/ng/",
-    debit_currency: "NGN",
-  });
-
-  res.status(201).json(transaction);
 });

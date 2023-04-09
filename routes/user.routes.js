@@ -4,7 +4,6 @@ const {
   getSingleUser,
   updateUser,
   deleteUser,
-  pay,
 } = require("../controllers/user.controller");
 const { requireAuth } = require("../middlewares/requireAuth");
 
@@ -12,7 +11,7 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-router.route("/").get(getAllUsers).post(pay);
+router.route("/").get(getAllUsers);
 
 router
   .route("/:userId")
