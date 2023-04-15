@@ -29,6 +29,7 @@ app.use(
       "http://127.0.0.1:5173",
       "http://127.0.0.1:5174",
       "http://localhost:5173",
+      "http://localhost:5174",
       "https://bookverseapp.netlify.app",
     ],
     credentials: true,
@@ -51,7 +52,10 @@ app.use((req, res, next) => {
 
 app.all("*", (req, res, next) => {
   next(
-    new GlobalError(`Oops! Can't find ${req.originalUrl} on this server`, 404)
+    new GlobalError(
+      `Oops! Can't find ${req.method} ${req.originalUrl}  on this server`,
+      404
+    )
   );
 });
 

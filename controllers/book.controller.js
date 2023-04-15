@@ -103,13 +103,14 @@ exports.updateBook = catchAsync(async (req, res, next) => {
   });
 
   const sqlQuery =
-    "UPDATE books SET title = $1, description = $2, price = $3, bookimg = $4, userid = $5, slug = $6 WHERE id = $7 RETURNING *";
+    "UPDATE books SET title = $1, description = $2, price = $3, bookimg = $4, userid = $5, category = $6, slug = $7 WHERE id = $8 RETURNING *";
   const values = [
     req.body.title,
     req.body.description,
     req.body.price,
     req.body.image,
     req.user.id,
+    req.body.category,
     slugifiedText,
     req.params.bookId,
   ];
@@ -167,7 +168,6 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
     await redisClient.del(allBooksCacheKey);
 
     await redisClient.set(allBooksCacheKey, JSON.stringify(updatedCachedBooks));
-    await redisClient.expire(cacheKey, 180);
 
     await postgres.query("ALTER TABLE books ENABLE TRIGGER ALL");
 
