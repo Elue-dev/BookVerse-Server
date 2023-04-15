@@ -150,13 +150,12 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
     (book) => book.id !== parseInt(req.params.bookId)
   );
 
-  await postgres.query("ALTER TABLE books DISABLE TRIGGERS ALL");
+  // await postgres.query("ALTER TABLE books DISABLE TRIGGERS ALL");
 
   const sqlQuery = "DELETE FROM books WHERE id = $1 RETURNING *";
 
   postgres.query(sqlQuery, [req.params.bookId], async (err, book) => {
     if (err) return next(new GlobalError(err, 500));
-    console.log(err);
 
     if (req.user.id !== book.rows[0].userid)
       return next(new GlobalError("You can only delete books you added", 403));
@@ -170,7 +169,7 @@ exports.deleteBook = catchAsync(async (req, res, next) => {
 
     await redisClient.set(allBooksCacheKey, JSON.stringify(updatedCachedBooks));
 
-    await postgres.query("ALTER TABLE books ENABLE TRIGGERS ALL");
+    // await postgres.query("ALTER TABLE books ENABLE TRIGGERS ALL");
 
     res.status(200).json(`Book deleted`);
   });
